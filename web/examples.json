@@ -1,0 +1,1235 @@
+{
+ "stage": 5,
+ "repo": "gtm-05-usage-billing",
+ "title": "Usage-Based Pricing (UBP) & Monetization",
+ "tagline": "Bill for value, not seats: idempotent API metering, Stripe-style graduated and volume tiers with included units and minimum commits, and prepaid credit wallets with expiry and runway alerts.",
+ "why": "Usage-based pricing ties revenue to the value a customer gets, but it moves the hard part into engineering. A retried webhook billed twice, a late event moved into the wrong month, or a float rounding error on 40 million API calls is a billing dispute. Credit systems add expiry rules finance must sign off on. This repo makes metering, rating and credits deterministic and testable.",
+ "covers": [
+  "Metering: idempotency keys, sum / max / unique-count / count aggregation, period bounds, duplicate / late / unknown-meter rejections with counts",
+  "Rating: graduated and volume tiers, fractional unit prices, flat fees per tier, included units, platform fee, minimum-commit true-up, one rounding per line in whole cents",
+  "Tier validation: increasing up_to, only the last tier unbounded",
+  "Credit wallets: soonest-expiring grant burns first, daily expiry, overage, balance, burn rate, runway days, low-balance alert"
+ ],
+ "gaps": [
+  "No Stripe API calls: the output mirrors metered-billing invoice lines but is not pushed to Stripe",
+  "No proration for mid-period plan changes, no tax, single currency",
+  "Outcome-based pricing (pay per resolved ticket, per meeting booked) needs an outcome event feed; the meter accepts it but no outcome model is included"
+ ],
+ "ops": [
+  {
+   "op": "meter_usage",
+   "label": "Meter usage",
+   "help": "Aggregate a 30-day event stream per customer. The sample has one retried duplicate, one late event and one typo meter.",
+   "input": {
+    "period_start_day": 0,
+    "period_end_day": 30,
+    "meters": {
+     "api_calls": {
+      "aggregation": "sum"
+     },
+     "storage_gb": {
+      "aggregation": "max"
+     },
+     "active_seats": {
+      "aggregation": "unique_count"
+     }
+    },
+    "events": [
+     {
+      "idempotency_key": "evt_1",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 28411,
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_2",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 40,
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_3",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_4",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_5",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_6",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_7",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_8",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_9",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 16370,
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_10",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 43,
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_11",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_12",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_13",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_14",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_15",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_16",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_17",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 19748,
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_18",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 46,
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_19",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_20",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_21",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_22",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_23",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_24",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_25",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 29365,
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_26",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 49,
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_27",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_28",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_29",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_30",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_31",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_32",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_33",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 25368,
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_34",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 52,
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_35",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_36",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_37",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_38",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_39",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_40",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_41",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 8950,
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_42",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 55,
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_43",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_44",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_45",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_46",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_47",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_48",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_49",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 23257,
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_50",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 58,
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_51",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_52",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_53",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_54",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_55",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_56",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_57",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 16160,
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_58",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 61,
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_59",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_60",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_61",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_62",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_63",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_64",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_65",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 29265,
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_66",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 64,
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_67",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_68",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u1",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_69",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u2",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_70",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_71",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_72",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_73",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 9699,
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_74",
+      "customer": "cus_northwind",
+      "meter": "storage_gb",
+      "value": 67,
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_75",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u3",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_76",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u4",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_77",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u5",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_78",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u6",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_79",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u7",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_80",
+      "customer": "cus_northwind",
+      "meter": "active_seats",
+      "unique_id": "cus_northwind_u0",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_81",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 1142,
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_82",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_83",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u0",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_84",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u1",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_85",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u2",
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_86",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 963,
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_87",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_88",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u3",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_89",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u4",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_90",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u5",
+      "day": 3
+     },
+     {
+      "idempotency_key": "evt_91",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 2022,
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_92",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_93",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u6",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_94",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u7",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_95",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u0",
+      "day": 6
+     },
+     {
+      "idempotency_key": "evt_96",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 2421,
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_97",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_98",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u1",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_99",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u2",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_100",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u3",
+      "day": 9
+     },
+     {
+      "idempotency_key": "evt_101",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 1509,
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_102",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_103",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u4",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_104",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u5",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_105",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u6",
+      "day": 12
+     },
+     {
+      "idempotency_key": "evt_106",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 2059,
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_107",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_108",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u7",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_109",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u0",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_110",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u1",
+      "day": 15
+     },
+     {
+      "idempotency_key": "evt_111",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 2727,
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_112",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_113",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u2",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_114",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u3",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_115",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u4",
+      "day": 18
+     },
+     {
+      "idempotency_key": "evt_116",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 917,
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_117",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_118",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u5",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_119",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u6",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_120",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u7",
+      "day": 21
+     },
+     {
+      "idempotency_key": "evt_121",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 2850,
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_122",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_123",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u0",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_124",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u1",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_125",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u2",
+      "day": 24
+     },
+     {
+      "idempotency_key": "evt_126",
+      "customer": "cus_contoso",
+      "meter": "api_calls",
+      "value": 1521,
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_127",
+      "customer": "cus_contoso",
+      "meter": "storage_gb",
+      "value": 5,
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_128",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u3",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_129",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u4",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_130",
+      "customer": "cus_contoso",
+      "meter": "active_seats",
+      "unique_id": "cus_contoso_u5",
+      "day": 27
+     },
+     {
+      "idempotency_key": "evt_1",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 28411,
+      "day": 0
+     },
+     {
+      "idempotency_key": "evt_late",
+      "customer": "cus_northwind",
+      "meter": "api_calls",
+      "value": 99999,
+      "day": 31
+     },
+     {
+      "idempotency_key": "evt_typo",
+      "customer": "cus_contoso",
+      "meter": "api_cals",
+      "value": 10,
+      "day": 4
+     }
+    ]
+   }
+  },
+  {
+   "op": "rate_invoice",
+   "label": "Rate invoice",
+   "help": "Price usage with a platform fee, included units, graduated API tiers, volume storage tiers and a minimum commit.",
+   "input": {
+    "usage": {
+     "api_calls": 186420,
+     "storage_gb": 67,
+     "active_seats": 8
+    },
+    "plan": {
+     "platform_fee_cents": 49900,
+     "minimum_commit_cents": 100000,
+     "meters": [
+      {
+       "meter": "api_calls",
+       "model": "graduated",
+       "included_units": 50000,
+       "tiers": [
+        {
+         "up_to": 100000,
+         "unit_cents": 0.2
+        },
+        {
+         "up_to": 1000000,
+         "unit_cents": 0.12
+        },
+        {
+         "up_to": null,
+         "unit_cents": 0.08
+        }
+       ]
+      },
+      {
+       "meter": "storage_gb",
+       "model": "volume",
+       "included_units": 10,
+       "tiers": [
+        {
+         "up_to": 50,
+         "unit_cents": 25
+        },
+        {
+         "up_to": 500,
+         "unit_cents": 18
+        },
+        {
+         "up_to": null,
+         "unit_cents": 12
+        }
+       ]
+      },
+      {
+       "meter": "active_seats",
+       "model": "graduated",
+       "included_units": 5,
+       "tiers": [
+        {
+         "up_to": null,
+         "unit_cents": 1500
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "op": "credit_ledger",
+   "label": "Credit wallet",
+   "help": "Burn daily usage from prepaid grants, soonest expiry first. Expired promo credits and runway are reported.",
+   "input": {
+    "as_of_day": 40,
+    "burn_window_days": 14,
+    "low_balance_alert_days": 10,
+    "grants": [
+     {
+      "id": "signup_promo",
+      "credits": 2000,
+      "granted_day": 0,
+      "expires_day": 7
+     },
+     {
+      "id": "annual_prepay",
+      "credits": 9000,
+      "granted_day": 0
+     },
+     {
+      "id": "q4_bonus",
+      "credits": 1000,
+      "granted_day": 20,
+      "expires_day": 50
+     }
+    ],
+    "daily_usage": [
+     {
+      "day": 0,
+      "credits": 60
+     },
+     {
+      "day": 1,
+      "credits": 85
+     },
+     {
+      "day": 2,
+      "credits": 110
+     },
+     {
+      "day": 3,
+      "credits": 135
+     },
+     {
+      "day": 4,
+      "credits": 160
+     },
+     {
+      "day": 5,
+      "credits": 185
+     },
+     {
+      "day": 6,
+      "credits": 210
+     },
+     {
+      "day": 7,
+      "credits": 60
+     },
+     {
+      "day": 8,
+      "credits": 85
+     },
+     {
+      "day": 9,
+      "credits": 110
+     },
+     {
+      "day": 10,
+      "credits": 165
+     },
+     {
+      "day": 11,
+      "credits": 190
+     },
+     {
+      "day": 12,
+      "credits": 215
+     },
+     {
+      "day": 13,
+      "credits": 240
+     },
+     {
+      "day": 14,
+      "credits": 90
+     },
+     {
+      "day": 15,
+      "credits": 115
+     },
+     {
+      "day": 16,
+      "credits": 140
+     },
+     {
+      "day": 17,
+      "credits": 165
+     },
+     {
+      "day": 18,
+      "credits": 190
+     },
+     {
+      "day": 19,
+      "credits": 215
+     },
+     {
+      "day": 20,
+      "credits": 270
+     },
+     {
+      "day": 21,
+      "credits": 120
+     },
+     {
+      "day": 22,
+      "credits": 145
+     },
+     {
+      "day": 23,
+      "credits": 170
+     },
+     {
+      "day": 24,
+      "credits": 195
+     },
+     {
+      "day": 25,
+      "credits": 220
+     },
+     {
+      "day": 26,
+      "credits": 245
+     },
+     {
+      "day": 27,
+      "credits": 270
+     },
+     {
+      "day": 28,
+      "credits": 120
+     },
+     {
+      "day": 29,
+      "credits": 145
+     },
+     {
+      "day": 30,
+      "credits": 200
+     },
+     {
+      "day": 31,
+      "credits": 225
+     },
+     {
+      "day": 32,
+      "credits": 250
+     },
+     {
+      "day": 33,
+      "credits": 275
+     },
+     {
+      "day": 34,
+      "credits": 300
+     },
+     {
+      "day": 35,
+      "credits": 150
+     },
+     {
+      "day": 36,
+      "credits": 175
+     },
+     {
+      "day": 37,
+      "credits": 200
+     },
+     {
+      "day": 38,
+      "credits": 225
+     },
+     {
+      "day": 39,
+      "credits": 250
+     },
+     {
+      "day": 40,
+      "credits": 305
+     }
+    ]
+   }
+  }
+ ]
+}

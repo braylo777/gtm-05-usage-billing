@@ -1,0 +1,23 @@
+[package]
+name = "gtm-05-usage-billing"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Bill for value, not seats: idempotent API metering, Stripe-style graduated and volume tiers with included units and minimum commits, and prepaid credit wallets with expiry and runway alerts."
+repository = "https://github.com/braylo777/gtm-05-usage-billing"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "gtm-05-usage-billing"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "=1.0.154"
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+codegen-units = 1
